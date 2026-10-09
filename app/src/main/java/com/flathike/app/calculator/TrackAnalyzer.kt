@@ -335,24 +335,40 @@ object TrackAnalyzer {
 
         // Waypoints projected onto track distance
         val resolvedWaypoints = rawWaypoints.map { wpt ->
-            var bestIdx = 0
-            var bestDistM = Double.MAX_VALUE
-            for (idx in points.indices) {
-                val d = GeodesyCalculator.haversineDistanceMeters(
-                    wpt.latitude, wpt.longitude,
-                    points[idx].latitude, points[idx].longitude
+            if (wpt.distanceKm > 0.0) {
+                // Waypoint was created at a known distance along the track!
+                val bestIdx = cumulativeDistances.indices.minByOrNull { idx ->
+                    abs(cumulativeDistances[idx] - wpt.distanceKm)
+                } ?: 0
+                val resolvedEle = if (wpt.elevation != 0.0) wpt.elevation else points[bestIdx].elevation
+                val resolvedLat = if (wpt.latitude != 0.0) wpt.latitude else points[bestIdx].latitude
+                val resolvedLon = if (wpt.longitude != 0.0) wpt.longitude else points[bestIdx].longitude
+                wpt.copy(
+                    latitude = resolvedLat,
+                    longitude = resolvedLon,
+                    elevation = resolvedEle
                 )
-                if (d < bestDistM) {
-                    bestDistM = d
-                    bestIdx = idx
+            } else {
+                // Waypoint from file with lat/lon: project onto track
+                var bestIdx = 0
+                var bestDistM = Double.MAX_VALUE
+                for (idx in points.indices) {
+                    val d = GeodesyCalculator.haversineDistanceMeters(
+                        wpt.latitude, wpt.longitude,
+                        points[idx].latitude, points[idx].longitude
+                    )
+                    if (d < bestDistM) {
+                        bestDistM = d
+                        bestIdx = idx
+                    }
                 }
+                val trackDistKm = cumulativeDistances[bestIdx]
+                val resolvedEle = if (wpt.elevation != 0.0) wpt.elevation else points[bestIdx].elevation
+                wpt.copy(
+                    distanceKm = trackDistKm,
+                    elevation = resolvedEle
+                )
             }
-            val trackDistKm = cumulativeDistances[bestIdx]
-            val resolvedEle = if (wpt.elevation != 0.0) wpt.elevation else points[bestIdx].elevation
-            wpt.copy(
-                distanceKm = trackDistKm,
-                elevation = resolvedEle
-            )
         }.sortedBy { it.distanceKm }
 
         val slopeSpeedAnalysis = TrackSplitter.analyzeSlopeSpeed(points, cumulativeDistances, walkingSpeedDefaultKmH)
@@ -423,5 +439,66 @@ object TrackAnalyzer {
             result.add(ElevationProfilePoint(cumulativeDistancesKm[index], points[index].elevation))
         }
         return result
+    }
+
+    /**
+     * Calculates the cumulative sea-level distances in kilometers along the track points.
+     */
+    fun calculateCumulativeDistances(points: List<GpsPoint>): List<Double> {
+        if (points.isEmpty()) return emptyList()
+        val list = ArrayList<Double>(points.size)
+        list.add(0.0)
+        var totalMeters = 0.0
+        for (i in 0 until points.size - 1) {
+            val dHoriz = GeodesyCalculator.haversineDistanceMeters(
+                points[i].latitude, points[i].longitude,
+                points[i + 1].latitude, points[i + 1].longitude
+            )
+            totalMeters += dHoriz
+            list.add(totalMeters / 1000.0)
+        }
+        return list
+    }
+
+    /**
+     * Finds the interpolated GPS point and elevation along the track at the given distance in kilometers.
+     */
+    fun findPointAtDistance(
+        points: List<GpsPoint>,
+        cumulativeDistancesKm: List<Double>,
+        targetDistanceKm: Double
+    ): GpsPoint? {
+        if (points.isEmpty()) return null
+        if (points.size == 1 || targetDistanceKm <= 0.0) return points.first()
+        val lastDist = cumulativeDistancesKm.lastOrNull() ?: 0.0
+        if (targetDistanceKm >= lastDist) return points.last()
+
+        for (i in 0 until cumulativeDistancesKm.size - 1) {
+            val d1 = cumulativeDistancesKm[i]
+            val d2 = cumulativeDistancesKm[i + 1]
+            if (targetDistanceKm in d1..d2) {
+                val span = d2 - d1
+                if (span <= 1e-6) return points[i]
+                val frac = (targetDistanceKm - d1) / span
+                val p1 = points[i]
+                val p2 = points[i + 1]
+                val lat = p1.latitude + frac * (p2.latitude - p1.latitude)
+                val lon = p1.longitude + frac * (p2.longitude - p1.longitude)
+                val ele = p1.elevation + frac * (p2.elevation - p1.elevation)
+                val time = if (p1.time != null && p2.time != null) {
+                    (p1.time + frac * (p2.time - p1.time)).toLong()
+                } else null
+                return GpsPoint(lat, lon, ele, time)
+            }
+        }
+        return points.last()
+    }
+
+    /**
+     * Convenience overload for finding point at distance without precomputed cumulative distances.
+     */
+    fun findPointAtDistance(points: List<GpsPoint>, targetDistanceKm: Double): GpsPoint? {
+        val distances = calculateCumulativeDistances(points)
+        return findPointAtDistance(points, distances, targetDistanceKm)
     }
 }

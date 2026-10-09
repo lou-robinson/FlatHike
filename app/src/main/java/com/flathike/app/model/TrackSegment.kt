@@ -54,8 +54,34 @@ data class TrackSegment(
     val slopeCategory: SlopeCategory,
     val durationSeconds: Long,
     val avgSpeedKmH: Double,
-    val isRealGpsSpeed: Boolean
-)
+    val isRealGpsSpeed: Boolean,
+    val fromPointName: String? = null,
+    val toPointName: String? = null
+) {
+    /**
+     * Returns a localized display name for the segment according to the current UI language.
+     */
+    fun getDisplayName(appStrings: com.flathike.app.ui.AppStrings): String {
+        return when {
+            fromPointName != null && toPointName != null -> {
+                val from = if (fromPointName == "Старт" || fromPointName.equals("Start", ignoreCase = true)) {
+                    appStrings.start
+                } else fromPointName
+                val to = if (toPointName == "Финиш" || toPointName.equals("Finish", ignoreCase = true)) {
+                    appStrings.finish
+                } else toPointName
+                "$from → $to"
+            }
+            name.startsWith("Участок") || name.startsWith("Segment") -> {
+                "${appStrings.segmentPrefix} $index"
+            }
+            name.contains("–") || name.contains("-") -> {
+                "${String.format(java.util.Locale.US, "%.1f", startDistanceKm)}–${String.format(java.util.Locale.US, "%.1f", endDistanceKm)} ${appStrings.km}"
+            }
+            else -> name
+        }
+    }
+}
 
 /**
  * Strategy for partitioning the track into logical parts.

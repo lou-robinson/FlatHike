@@ -303,7 +303,9 @@ object TrackSplitter {
                     endIndex = to.second,
                     points = points,
                     cumulativeDistancesKm = cumulativeDistancesKm,
-                    baseSpeedKmH = baseSpeedKmH
+                    baseSpeedKmH = baseSpeedKmH,
+                    fromPointName = from.first,
+                    toPointName = to.first
                 )
                 segments.add(seg)
             }
@@ -320,7 +322,9 @@ object TrackSplitter {
         points: List<GpsPoint>,
         cumulativeDistancesKm: List<Double>,
         baseSpeedKmH: Double,
-        forcedCategory: SlopeCategory? = null
+        forcedCategory: SlopeCategory? = null,
+        fromPointName: String? = null,
+        toPointName: String? = null
     ): TrackSegment {
         val startPt = points[startIndex]
         val endPt = points[endIndex]
@@ -374,7 +378,9 @@ object TrackSplitter {
             slopeCategory = category,
             durationSeconds = durationSec,
             avgSpeedKmH = avgSpeedKmH,
-            isRealGpsSpeed = isRealGps
+            isRealGpsSpeed = isRealGps,
+            fromPointName = fromPointName,
+            toPointName = toPointName
         )
     }
 }

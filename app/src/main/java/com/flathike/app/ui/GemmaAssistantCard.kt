@@ -57,16 +57,24 @@ fun GemmaAssistantCard(
     onRequestReport: () -> Unit,
     onAskQuestion: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    appStrings: AppStrings? = null,
     modifier: Modifier = Modifier
 ) {
     var customQuestion by remember { mutableStateOf("") }
+    val isRu = appStrings?.isRu ?: true
 
-    val quickQuestions = listOf(
+    val quickQuestions = if (isRu) listOf(
         "Зачем коэффициенты подъема?",
         "Что такое прямая на уровне моря?",
         "Оценка сложности для новичка",
         "Сколько воды и еды взять?",
         "Рекомендации по экипировке"
+    ) else listOf(
+        "Why climb coefficients?",
+        "What is straight-line at sea level?",
+        "Difficulty rating for beginners",
+        "How much food and water to bring?",
+        "Gear and clothing advice"
     )
 
     Card(
@@ -112,9 +120,9 @@ fun GemmaAssistantCard(
                     )
                     Text(
                         text = when (config.backendType) {
-                            GemmaBackendType.OFFLINE_INTELLIGENCE -> "Встроенный офлайн AI • Готов"
-                            GemmaBackendType.ON_DEVICE_MEDIAPIPE -> "Локальная Gemma (MediaPipe) • Активна"
-                            GemmaBackendType.CLOUD_API -> "Gemma 2 Cloud API • Активна"
+                            GemmaBackendType.OFFLINE_INTELLIGENCE -> if (isRu) "Встроенный офлайн AI • Готов" else "Built-in Offline AI • Ready"
+                            GemmaBackendType.ON_DEVICE_MEDIAPIPE -> if (isRu) "Локальная Gemma (MediaPipe) • Активна" else "On-Device Gemma (MediaPipe) • Active"
+                            GemmaBackendType.CLOUD_API -> if (isRu) "Gemma 2 Cloud API • Активна" else "Gemma 2 Cloud API • Active"
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
@@ -124,7 +132,7 @@ fun GemmaAssistantCard(
                 IconButton(onClick = onOpenSettings) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = "Настройки AI",
+                        contentDescription = if (isRu) "Настройки AI" else "AI Settings",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -149,7 +157,7 @@ fun GemmaAssistantCard(
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Gemma анализирует маршрут...")
+                    Text(if (isRu) "Gemma анализирует маршрут..." else "Gemma is analyzing route...")
                 } else {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
@@ -157,7 +165,7 @@ fun GemmaAssistantCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Сформировать полный отчет Gemma AI")
+                    Text(if (isRu) "Сформировать полный отчет Gemma AI" else "Generate Full Gemma AI Report")
                 }
             }
 
@@ -165,7 +173,7 @@ fun GemmaAssistantCard(
 
             // Quick Questions Horizontal Scroll
             Text(
-                text = "Быстрые вопросы:",
+                text = if (isRu) "Быстрые вопросы:" else "Quick questions:",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -195,7 +203,7 @@ fun GemmaAssistantCard(
                 OutlinedTextField(
                     value = customQuestion,
                     onValueChange = { customQuestion = it },
-                    placeholder = { Text("Задайте вопрос Gemma о маршруте...") },
+                    placeholder = { Text(appStrings?.gemmaPromptPlaceholder ?: if (isRu) "Задайте вопрос Gemma о маршруте..." else "Ask Gemma about this trail...") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -217,7 +225,7 @@ fun GemmaAssistantCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Send,
-                        contentDescription = "Отправить",
+                        contentDescription = if (isRu) "Отправить" else "Send",
                         tint = if (customQuestion.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

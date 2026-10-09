@@ -71,25 +71,53 @@ private val AlpineBackground = Color(0xFFF6FBF7)
 private val AlpineSurface = Color(0xFFFFFFFF)
 
 private val LightColors = lightColorScheme(
-    primary = AlpinePrimary,
-    onPrimary = AlpineOnPrimary,
-    primaryContainer = AlpinePrimaryContainer,
-    secondary = AlpineSecondary,
-    tertiary = AlpineTertiary,
-    tertiaryContainer = AlpineTertiaryContainer,
-    background = AlpineBackground,
-    surface = AlpineSurface
+    primary = Color(0xFF1E6B52), // Mountain Forest Green
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFA7F2D2),
+    onPrimaryContainer = Color(0xFF002117),
+    secondary = Color(0xFF3B6455),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFDDECE3),
+    onSecondaryContainer = Color(0xFF062017),
+    tertiary = Color(0xFF944A00), // Trail Rust
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFFFDCC5),
+    onTertiaryContainer = Color(0xFF321300),
+    background = Color(0xFFF6FBF7),
+    onBackground = Color(0xFF191C1A),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF191C1A),
+    surfaceVariant = Color(0xFFDBE5DE),
+    onSurfaceVariant = Color(0xFF404944),
+    outline = Color(0xFF707973),
+    outlineVariant = Color(0xFFBFC9C2),
+    error = Color(0xFFBA1A1A),
+    onError = Color(0xFFFFFFFF)
 )
 
 private val DarkColors = darkColorScheme(
     primary = Color(0xFF8BD5B7),
     onPrimary = Color(0xFF003828),
     primaryContainer = Color(0xFF00513B),
+    onPrimaryContainer = Color(0xFFA7F2D2),
     secondary = Color(0xFFB1CCBF),
+    onSecondary = Color(0xFF1D352B),
+    secondaryContainer = Color(0xFF334B41),
+    onSecondaryContainer = Color(0xFFCDD9D1),
     tertiary = Color(0xFFFFB786),
+    onTertiary = Color(0xFF502400),
     tertiaryContainer = Color(0xFF723600),
+    onTertiaryContainer = Color(0xFFFFDCC5),
     background = Color(0xFF0F1512),
-    surface = Color(0xFF171E1B)
+    onBackground = Color(0xFFDEE4DF),
+    surface = Color(0xFF171E1B),
+    onSurface = Color(0xFFDEE4DF),
+    surfaceVariant = Color(0xFF404944),
+    onSurfaceVariant = Color(0xFFBFC9C2),
+    outline = Color(0xFF8A938C),
+    outlineVariant = Color(0xFF404944),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005)
 )
 
 @Composable

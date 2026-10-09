@@ -146,12 +146,12 @@ fun AppSettingsDialog(
                 if (selectedTab == 0) {
                     // TAB 0: Elevation coefficients & walking speed
                     Text(
-                        text = "Стандарт коэффициента подъема:",
+                        text = strings.climbCoefficientStandard,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Определяет, сколько метров набора высоты эквивалентно 1 км ходьбы по равнине:",
+                        text = strings.climbCoefficientExplanation,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -187,12 +187,12 @@ fun AppSettingsDialog(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = preset.title,
+                                        text = preset.getTitle(strings.isRu),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                     Text(
-                                        text = preset.description,
+                                        text = preset.getDescription(strings.isRu),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -213,12 +213,12 @@ fun AppSettingsDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Пользовательский k: ${String.format(Locale.US, "%.1f", customCoeff)}",
+                                    text = strings.customKLabel(customCoeff),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "+${String.format(Locale.US, "%.1f", customCoeff / 10.0)} км за 100м набора",
+                                    text = strings.customKPer100m(customCoeff / 10.0),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -238,7 +238,7 @@ fun AppSettingsDialog(
 
                     // Base distance selection
                     Text(
-                        text = "Базовая дистанция для расчета:",
+                        text = strings.baseDistanceForCalculation,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -257,12 +257,12 @@ fun AppSettingsDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "К фактической длине трека (Рекомендуется)",
+                                text = strings.applyToActualTrackLength,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = if (applyToTrackLength) FontWeight.SemiBold else FontWeight.Normal
                             )
                             Text(
-                                text = "Длина тропы по GPS + надбавка за подъем",
+                                text = strings.applyToActualTrackLengthDesc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -283,12 +283,12 @@ fun AppSettingsDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "К расстоянию по прямой на уровне моря",
+                                text = strings.applyToStraightLine,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = if (!applyToTrackLength) FontWeight.SemiBold else FontWeight.Normal
                             )
                             Text(
-                                text = "Прямая линия между точками + надбавка за подъем",
+                                text = strings.applyToStraightLineDesc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -301,12 +301,12 @@ fun AppSettingsDialog(
 
                     // Default speed
                     Text(
-                        text = "Скорость ходьбы по умолчанию: ${String.format(Locale.US, "%.1f", walkingSpeed)} км/ч",
+                        text = strings.defaultWalkingSpeed(walkingSpeed),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Используется для начального расчета времени пути",
+                        text = strings.defaultWalkingSpeedDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -323,12 +323,12 @@ fun AppSettingsDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "ДАННЫЕ ТРЕКА И ДАТЧИКИ",
+                        text = strings.trackDataAndSensors,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Отображение фактических параметров при их наличии в файле трека:",
+                        text = strings.trackDataAndSensorsDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -350,12 +350,12 @@ fun AppSettingsDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Фактическое время и реальная скорость",
+                                text = strings.actualTimeAndSpeed,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "Показывать время движения, среднюю и макс. скорость и темп по GPS-меткам",
+                                text = strings.actualTimeAndSpeedDesc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -377,12 +377,12 @@ fun AppSettingsDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Температура воздуха",
+                                text = strings.airTemperature,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "Показывать среднюю и мин/макс температуру из точек трека (Garmin / atemp)",
+                                text = strings.airTemperatureDesc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -482,7 +482,7 @@ fun AppSettingsDialog(
                 } else {
                     // TAB 2: AI Gemma configuration
                     Text(
-                        text = "Выберите режим работы нейросети Gemma:",
+                        text = strings.gemmaModeSelection,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -504,12 +504,12 @@ fun AppSettingsDialog(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
-                                    text = type.displayName,
+                                    text = type.getDisplayName(strings.isRu),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = if (gemmaBackendType == type) FontWeight.SemiBold else FontWeight.Normal
                                 )
                                 Text(
-                                    text = type.description,
+                                    text = type.getDescription(strings.isRu),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -522,21 +522,21 @@ fun AppSettingsDialog(
                     when (gemmaBackendType) {
                         GemmaBackendType.OFFLINE_INTELLIGENCE -> {
                             Text(
-                                text = "Встроенный офлайн-эксперт готов к работе сразу. Рассчитывает биомеханику, коэффициенты и рельеф автономно без интернета.",
+                                text = strings.gemmaOfflineEngineReady,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
                         GemmaBackendType.ON_DEVICE_MEDIAPIPE -> {
                             Text(
-                                text = "Укажите абсолютный путь к файлу модели Gemma (.bin или .task) на вашем устройстве:",
+                                text = strings.gemmaSpecifyModelPath,
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             OutlinedTextField(
                                 value = modelPath,
                                 onValueChange = { modelPath = it },
-                                label = { Text("Путь к модели (.bin / .task)") },
+                                label = { Text(strings.gemmaModelPathLabel) },
                                 placeholder = { Text("/sdcard/Download/gemma-2b-it-gpu-int4.bin") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
@@ -544,7 +544,7 @@ fun AppSettingsDialog(
                         }
                         GemmaBackendType.CLOUD_API -> {
                             Text(
-                                text = "Быстрые шаблоны провайдеров Gemma:",
+                                text = strings.gemmaProviderTemplates,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -561,7 +561,7 @@ fun AppSettingsDialog(
                                         cloudEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemma-2-9b-it:generateContent"
                                         cloudModelName = "gemma-2-9b-it"
                                     },
-                                    label = { Text("Google AI Studio (Офиц.)", style = MaterialTheme.typography.labelSmall) }
+                                    label = { Text("Google AI Studio (${strings.gemmaOfficialBadge})", style = MaterialTheme.typography.labelSmall) }
                                 )
                                 FilterChip(
                                     selected = cloudEndpoint.contains("groq.com"),
@@ -594,7 +594,7 @@ fun AppSettingsDialog(
                             OutlinedTextField(
                                 value = cloudEndpoint,
                                 onValueChange = { cloudEndpoint = it },
-                                label = { Text("URL эндпоинта") },
+                                label = { Text(strings.gemmaEndpointUrl) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
@@ -602,7 +602,7 @@ fun AppSettingsDialog(
                             OutlinedTextField(
                                 value = cloudApiKey,
                                 onValueChange = { cloudApiKey = it },
-                                label = { Text(if (cloudEndpoint.contains("generativelanguage.googleapis.com")) "Google AI API Key" else "API Ключ (Bearer token)") },
+                                label = { Text(if (cloudEndpoint.contains("generativelanguage.googleapis.com")) "Google AI API Key" else strings.gemmaApiKey) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
@@ -610,7 +610,7 @@ fun AppSettingsDialog(
                             OutlinedTextField(
                                 value = cloudModelName,
                                 onValueChange = { cloudModelName = it },
-                                label = { Text("Имя модели") },
+                                label = { Text(strings.gemmaModelName) },
                                 placeholder = { Text("gemma-2-9b-it") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true

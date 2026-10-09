@@ -120,7 +120,7 @@ fun FlatHikeMainScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            handleFileUri(context, uri, viewModel)
+            handleFileUri(context, uri, viewModel, strings)
         }
     }
 
@@ -150,7 +150,7 @@ fun FlatHikeMainScreen(
                     }) {
                         Icon(
                             imageVector = Icons.Default.FileUpload,
-                            contentDescription = "Загрузить трек",
+                            contentDescription = strings.loadTrack,
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -172,7 +172,7 @@ fun FlatHikeMainScreen(
                     }
 
                     IconButton(onClick = { showMenu = !showMenu }) {
-                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Меню")
+                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = strings.menu)
                     }
 
                     DropdownMenu(
@@ -204,7 +204,7 @@ fun FlatHikeMainScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(if (strings.isRu) "Справка: коэффициенты подъема" else "Help: climb coefficients") },
+                            text = { Text(strings.helpClimbCoeffs) },
                             leadingIcon = { Icon(Icons.Default.HelpOutline, contentDescription = null) },
                             onClick = {
                                 showMenu = false
@@ -239,7 +239,8 @@ fun FlatHikeMainScreen(
                     startEle = result.startPoint.elevation,
                     endEle = result.endPoint.elevation,
                     isClosedLoop = result.isClosedLoop,
-                    maxEle = result.maxElevationMeters
+                    maxEle = result.maxElevationMeters,
+                    strings = strings
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -252,7 +253,8 @@ fun FlatHikeMainScreen(
                         progress = uiState.elevationFetchProgress,
                         errorMessage = uiState.elevationFetchError,
                         onFetchClick = { viewModel.fetchElevationProfile() },
-                        onDismissError = { viewModel.dismissElevationError() }
+                        onDismissError = { viewModel.dismissElevationError() },
+                        strings = strings
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -268,7 +270,8 @@ fun FlatHikeMainScreen(
                     applyToTrackLength = uiState.applyToTrackLength,
                     totalAscentMeters = result.totalAscentMeters,
                     onSpeedChange = { viewModel.setWalkingSpeed(it) },
-                    onOpenSettings = { viewModel.openSettings() }
+                    onOpenSettings = { viewModel.openSettings() },
+                    strings = strings
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -281,7 +284,8 @@ fun FlatHikeMainScreen(
                         timeMetrics = result.recordedTimeMetrics,
                         tempMetrics = result.recordedTemperatureMetrics,
                         showTimeSpeed = uiState.showRecordedTimeSpeed,
-                        showTemp = uiState.showRecordedTemperature
+                        showTemp = uiState.showRecordedTemperature,
+                        strings = strings
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -292,7 +296,8 @@ fun FlatHikeMainScreen(
                     result = result,
                     showAdvancedGeodetic = uiState.showAdvancedGeodetic,
                     onToggleAdvanced = { viewModel.toggleAdvancedGeodetic() },
-                    onInfoClick = { showExplanationDialog = true }
+                    onInfoClick = { showExplanationDialog = true },
+                    strings = strings
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -303,6 +308,8 @@ fun FlatHikeMainScreen(
                     waypoints = result.waypoints,
                     selectedWaypoint = uiState.selectedWaypoint,
                     onWaypointSelected = { viewModel.selectWaypoint(it) },
+                    onDeleteWaypoint = { viewModel.deleteWaypoint(it) },
+                    onAddWaypointAtDistance = { distKm -> viewModel.openAddWaypointDialog(distKm) },
                     appStrings = strings
                 )
 
@@ -328,14 +335,16 @@ fun FlatHikeMainScreen(
                     errorMessage = uiState.gemmaError,
                     onRequestReport = { viewModel.requestGemmaReport() },
                     onAskQuestion = { viewModel.askGemmaQuestion(it) },
-                    onOpenSettings = { viewModel.openSettings() }
+                    onOpenSettings = { viewModel.openSettings() },
+                    appStrings = strings
                 )
             } else {
                 EmptyStateCard(
                     onSelectDemo = { showDemoDialog = true },
                     onOpenFilePicker = {
                         filePickerLauncher.launch(arrayOf("*/*"))
-                    }
+                    },
+                    strings = strings
                 )
             }
 
@@ -350,7 +359,8 @@ fun FlatHikeMainScreen(
             onTrackSelected = {
                 viewModel.loadTrack(it)
                 showDemoDialog = false
-            }
+            },
+            strings = strings
         )
     }
 
@@ -361,7 +371,8 @@ fun FlatHikeMainScreen(
             onApply = {
                 viewModel.loadTrackFromText(it)
                 showPasteDialog = false
-            }
+            },
+            strings = strings
         )
     }
 
@@ -392,17 +403,18 @@ fun FlatHikeMainScreen(
             onSave = { name, distKm, desc ->
                 viewModel.addWaypoint(name, distKm, desc)
             },
-            appStrings = strings
+            appStrings = strings,
+            initialDistanceKm = uiState.initialWaypointDistance
         )
     }
 
     // Explanation Dialog
     if (showExplanationDialog) {
-        ExplanationDialog(onDismiss = { showExplanationDialog = false })
+        ExplanationDialog(onDismiss = { showExplanationDialog = false }, strings = strings)
     }
 }
 
-private fun handleFileUri(context: Context, uri: Uri, viewModel: FlatHikeViewModel) {
+private fun handleFileUri(context: Context, uri: Uri, viewModel: FlatHikeViewModel, strings: AppStrings) {
     try {
         val contentResolver = context.contentResolver
         var filename = "imported_track.gpx"
@@ -416,7 +428,7 @@ private fun handleFileUri(context: Context, uri: Uri, viewModel: FlatHikeViewMod
             viewModel.loadTrackFromStream(stream, filename)
         }
     } catch (e: Exception) {
-        viewModel.setTrackError("Не удалось открыть файл: ${e.localizedMessage ?: "ошибка чтения"}")
+        viewModel.setTrackError(strings.fileOpenError(e.localizedMessage ?: strings.fileReadError))
     }
 }
 
@@ -427,7 +439,8 @@ fun ElevationMissingCard(
     progress: Float,
     errorMessage: String?,
     onFetchClick: () -> Unit,
-    onDismissError: (() -> Unit)? = null
+    onDismissError: (() -> Unit)? = null,
+    strings: AppStrings
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -454,16 +467,16 @@ fun ElevationMissingCard(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isElevationMissing) "Профиль высоты отсутствует (2D трек)" else "Загрузка высот DEM",
+                        text = if (isElevationMissing) strings.elevationMissingCardTitle else strings.demUpdatingTitle,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = if (isElevationMissing) {
-                            "Все точки имеют высоту 0 м. Набор высоты, 3D дистанция и расчет времени не могут быть вычислены без данных рельефа."
+                            strings.elevationMissingCardDesc
                         } else {
-                            "Обновление профиля высот из открытой цифровой модели рельефа DEM (SRTM/Copernicus)."
+                            strings.demUpdatingDesc
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -476,7 +489,7 @@ fun ElevationMissingCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Закрыть",
+                            contentDescription = strings.close,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)
                         )
@@ -507,7 +520,7 @@ fun ElevationMissingCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Запрос открытой модели рельефа DEM (SRTM/Copernicus)... ${(progress * 100).roundToInt()}%",
+                        text = strings.demRequestingProgress((progress * 100).roundToInt()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -538,7 +551,7 @@ fun ElevationMissingCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (errorMessage != null) "Повторить загрузку высот (DEM)" else "Загрузить высоты с DEM (SRTM/Copernicus)",
+                        text = if (errorMessage != null) strings.demRetryButton else strings.demFetchButton,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -555,7 +568,8 @@ fun RouteHeaderCard(
     startEle: Double,
     endEle: Double,
     isClosedLoop: Boolean = false,
-    maxEle: Double = 0.0
+    maxEle: Double = 0.0,
+    strings: AppStrings
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -590,7 +604,7 @@ fun RouteHeaderCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Кольцевой маршрут (старт ≈ финиш)",
+                                text = strings.loopRoute,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
@@ -622,7 +636,7 @@ fun RouteHeaderCard(
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
-                        text = "Точек: $pointCount",
+                        text = strings.pointsCount(pointCount),
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -632,7 +646,7 @@ fun RouteHeaderCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = "Высоты: ${startEle.toInt()} → ${endEle.toInt()} м (пик ${maxEle.toInt()} м)",
+                    text = strings.elevationsRange(startEle.toInt(), endEle.toInt(), maxEle.toInt()),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -652,14 +666,15 @@ fun FlatEffortAndTimeHeroCard(
     applyToTrackLength: Boolean,
     totalAscentMeters: Double,
     onSpeedChange: (Double) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    strings: AppStrings
 ) {
     if (effectiveResult == null) return
 
     val totalMinutes = estimatedMinutes.roundToInt()
     val hours = totalMinutes / 60
     val mins = totalMinutes % 60
-    val timeFormatted = if (hours > 0) "$hours ч $mins мин" else "$mins мин"
+    val timeFormatted = if (hours > 0) "$hours ${strings.hours} $mins ${strings.min}" else "$mins ${strings.min}"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -697,7 +712,7 @@ fun FlatEffortAndTimeHeroCard(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "ПО РОВНОЙ ПОВЕРХНОСТИ",
+                            text = strings.flatEquivalentHeader,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -718,7 +733,7 @@ fun FlatEffortAndTimeHeroCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${selectedPreset.title.substringBefore(' ')} k=${String.format(Locale.US, "%.0f", effectiveCoeff)}",
+                            text = "${selectedPreset.getTitle(strings.isRu).substringBefore(' ')} k=${String.format(Locale.US, "%.0f", effectiveCoeff)}",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -727,7 +742,7 @@ fun FlatEffortAndTimeHeroCard(
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Настройки коэффициента",
+                            contentDescription = strings.coeffSettings,
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(13.dp)
                         )
@@ -769,7 +784,7 @@ fun FlatEffortAndTimeHeroCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "ДИСТАНЦИЯ",
+                                text = strings.distanceHeader,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -785,7 +800,7 @@ fun FlatEffortAndTimeHeroCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "км",
+                                text = strings.km,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -795,9 +810,9 @@ fun FlatEffortAndTimeHeroCard(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = if (applyToTrackLength) {
-                                "База ${String.format(Locale.US, "%.1f", effectiveResult.baseDistanceKm)} + ${String.format(Locale.US, "%.1f", effectiveResult.ascentBonusKm)} км"
+                                strings.basePlusBonus(effectiveResult.baseDistanceKm, effectiveResult.ascentBonusKm)
                             } else {
-                                "Прямая ${String.format(Locale.US, "%.1f", effectiveResult.baseDistanceKm)} + ${String.format(Locale.US, "%.1f", effectiveResult.ascentBonusKm)} км"
+                                strings.straightPlusBonus(effectiveResult.baseDistanceKm, effectiveResult.ascentBonusKm)
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 11.sp,
@@ -831,7 +846,7 @@ fun FlatEffortAndTimeHeroCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "ВРЕМЯ ХОДА",
+                                text = strings.hikingTimeHeader,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.tertiary
@@ -848,7 +863,7 @@ fun FlatEffortAndTimeHeroCard(
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "при ${String.format(Locale.US, "%.1f", walkingSpeed)} км/ч",
+                            text = strings.atSpeed(walkingSpeed),
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -866,12 +881,12 @@ fun FlatEffortAndTimeHeroCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Средняя скорость ходьбы:",
+                    text = strings.avgWalkingSpeed,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "${String.format(Locale.US, "%.1f", walkingSpeed)} км/ч",
+                    text = "${String.format(Locale.US, "%.1f", walkingSpeed)} ${strings.kmh}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -894,13 +909,13 @@ fun FlatEffortAndTimeHeroCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "1.5 км/ч",
+                    text = "1.5 ${strings.kmh}",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.outline
                 )
                 Text(
-                    text = "8.0 км/ч",
+                    text = "8.0 ${strings.kmh}",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.outline
@@ -915,7 +930,8 @@ fun RecordedTrackPerformanceCard(
     timeMetrics: RecordedTimeMetrics?,
     tempMetrics: RecordedTemperatureMetrics?,
     showTimeSpeed: Boolean,
-    showTemp: Boolean
+    showTemp: Boolean,
+    strings: AppStrings
 ) {
     val showTime = showTimeSpeed && timeMetrics != null
     val showTemperature = showTemp && tempMetrics != null
@@ -955,18 +971,18 @@ fun RecordedTrackPerformanceCard(
 
                 Column {
                     Text(
-                        text = "ФАКТИЧЕСКИЕ ДАННЫЕ ЗАПИСИ",
+                        text = strings.recordedMetricsTitle,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = if (showTime && showTemperature) {
-                            "Хронометраж, реальная скорость и температура воздуха"
+                            strings.recordedDataSubtitleBoth
                         } else if (showTime) {
-                            "Хронометраж и реальная скорость по меткам трека"
+                            strings.recordedDataSubtitleTime
                         } else {
-                            "Температурный профиль по датчикам трека"
+                            strings.recordedDataSubtitleTemp
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -981,7 +997,7 @@ fun RecordedTrackPerformanceCard(
                     val h = sec / 3600
                     val m = (sec % 3600) / 60
                     val s = sec % 60
-                    return if (h > 0) "${h} ч ${m} мин" else "${m} мин ${s} с"
+                    return if (h > 0) "$h ${strings.hours} $m ${strings.min}" else "$m ${strings.min} $s ${strings.sec}"
                 }
 
                 fun formatClock(millis: Long): String {
@@ -992,7 +1008,7 @@ fun RecordedTrackPerformanceCard(
                 val paceMin = timeMetrics.paceMinutesPerKm.toInt()
                 val paceSec = ((timeMetrics.paceMinutesPerKm - paceMin) * 60).roundToInt()
                 val paceStr = if (timeMetrics.paceMinutesPerKm in 0.5..120.0) {
-                    String.format(Locale.US, "%d:%02d /км", paceMin, paceSec)
+                    String.format(Locale.US, "%d:%02d ${strings.perKm}", paceMin, paceSec)
                 } else "—"
 
                 // Row 1: Скорость в движении & Время в движении
@@ -1003,17 +1019,17 @@ fun RecordedTrackPerformanceCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     KeyMetricBox(
-                        title = "Скорость в движении",
-                        value = "${String.format(Locale.US, "%.1f", timeMetrics.avgMovingSpeedKmH)} км/ч",
-                        subtitle = "макс. ${String.format(Locale.US, "%.1f", timeMetrics.maxSpeedKmH)} км/ч",
+                        title = strings.movingSpeed,
+                        value = "${String.format(Locale.US, "%.1f", timeMetrics.avgMovingSpeedKmH)} ${strings.kmh}",
+                        subtitle = strings.maxSpeedLabel(timeMetrics.maxSpeedKmH),
                         icon = Icons.Default.Speed,
                         modifier = Modifier.weight(1f)
                     )
 
                     KeyMetricBox(
-                        title = "Время в движении",
+                        title = strings.movingTime,
                         value = formatSec(timeMetrics.movingDurationSeconds),
-                        subtitle = "остановки: ${formatSec(timeMetrics.stoppedDurationSeconds)}",
+                        subtitle = strings.stoppedDuration(formatSec(timeMetrics.stoppedDurationSeconds)),
                         icon = Icons.Default.Timer,
                         modifier = Modifier.weight(1f)
                     )
@@ -1029,17 +1045,17 @@ fun RecordedTrackPerformanceCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     KeyMetricBox(
-                        title = "Темп движения",
+                        title = strings.movingPace,
                         value = paceStr,
-                        subtitle = "общая ср.: ${String.format(Locale.US, "%.1f", timeMetrics.avgSpeedKmH)} км/ч",
+                        subtitle = strings.overallAvgSpeedLabel(timeMetrics.avgSpeedKmH),
                         icon = Icons.Default.DirectionsWalk,
                         modifier = Modifier.weight(1f)
                     )
 
                     KeyMetricBox(
-                        title = "Время записи",
+                        title = strings.recordingTime,
                         value = "${formatClock(timeMetrics.startTimeMillis)} — ${formatClock(timeMetrics.endTimeMillis)}",
-                        subtitle = "всего: ${formatSec(timeMetrics.totalDurationSeconds)}",
+                        subtitle = strings.totalDurationLabel(formatSec(timeMetrics.totalDurationSeconds)),
                         icon = Icons.Default.Schedule,
                         modifier = Modifier.weight(1f)
                     )
@@ -1086,13 +1102,13 @@ fun RecordedTrackPerformanceCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Температура воздуха",
+                                    text = strings.airTempLabel,
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = String.format(Locale.US, "ср. %+.1f°C", tempMetrics.avgCelsius),
+                                    text = String.format(Locale.US, "${if (strings.isRu) "ср." else "avg"} %+.1f°C", tempMetrics.avgCelsius),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -1100,7 +1116,7 @@ fun RecordedTrackPerformanceCard(
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Диапазон: ${String.format(Locale.US, "%+.1f°C", tempMetrics.minCelsius)} … ${String.format(Locale.US, "%+.1f°C", tempMetrics.maxCelsius)}   •   Старт / финиш: ${String.format(Locale.US, "%+.0f°", tempMetrics.startCelsius)} / ${String.format(Locale.US, "%+.0f°C", tempMetrics.endCelsius)}",
+                                text = strings.tempRangeLabel(tempMetrics.minCelsius, tempMetrics.maxCelsius, tempMetrics.startCelsius, tempMetrics.endCelsius),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1117,7 +1133,8 @@ fun RouteKeyMetricsCard(
     result: TrackCalculationResult,
     showAdvancedGeodetic: Boolean,
     onToggleAdvanced: () -> Unit,
-    onInfoClick: () -> Unit
+    onInfoClick: () -> Unit,
+    strings: AppStrings
 ) {
     val straightKm = if (result.isClosedLoop) result.maxDistanceFromStartKm else result.straightLineSeaLevelKm
     val tortuosity = if (straightKm > 0.001) result.trackLengthSeaLevelKm / straightKm else 1.0
@@ -1160,7 +1177,7 @@ fun RouteKeyMetricsCard(
 
                     Column {
                         Text(
-                            text = "КЛЮЧЕВЫЕ ПАРАМЕТРЫ ТРЕКА",
+                            text = strings.keyTrackParams,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1171,7 +1188,7 @@ fun RouteKeyMetricsCard(
                 IconButton(onClick = onInfoClick) {
                     Icon(
                         imageVector = Icons.Default.HelpOutline,
-                        contentDescription = "О геодезической редукции",
+                        contentDescription = strings.geodeticsTitle,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1187,17 +1204,17 @@ fun RouteKeyMetricsCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 KeyMetricBox(
-                    title = "По прямой",
-                    value = "${String.format(Locale.US, "%.2f", straightKm)} км",
-                    subtitle = if (result.isClosedLoop) "макс. удаление" else "старт → финиш",
+                    title = strings.straightLineDistance,
+                    value = "${String.format(Locale.US, "%.2f", straightKm)} ${strings.km}",
+                    subtitle = if (result.isClosedLoop) strings.maxRadialDist else strings.startToFinish,
                     icon = Icons.Default.Straighten,
                     modifier = Modifier.weight(1f)
                 )
 
                 KeyMetricBox(
-                    title = "Путь по треку",
-                    value = "${String.format(Locale.US, "%.2f", result.trackLengthSeaLevelKm)} км",
-                    subtitle = "${result.pointCount} GPS-точек",
+                    title = strings.pathAlongTrack,
+                    value = "${String.format(Locale.US, "%.2f", result.trackLengthSeaLevelKm)} ${strings.km}",
+                    subtitle = strings.gpsPointsCount(result.pointCount),
                     icon = Icons.Default.AltRoute,
                     modifier = Modifier.weight(1f)
                 )
@@ -1212,17 +1229,17 @@ fun RouteKeyMetricsCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 KeyMetricBox(
-                    title = "Набор / Сброс",
-                    value = "+${result.totalAscentMeters.toInt()} / -${result.totalDescentMeters.toInt()} м",
-                    subtitle = "уклон: ср. ${String.format(Locale.US, "%.1f", result.avgSlopePercent)}%",
+                    title = strings.ascentDescentLabel,
+                    value = "+${result.totalAscentMeters.toInt()} / -${result.totalDescentMeters.toInt()} ${strings.meters}",
+                    subtitle = "${strings.slope}: ${if (strings.isRu) "ср." else "avg"} ${String.format(Locale.US, "%.1f", result.avgSlopePercent)}%",
                     icon = Icons.Default.Terrain,
                     modifier = Modifier.weight(1f)
                 )
 
                 KeyMetricBox(
-                    title = "Высоты трека",
-                    value = "${result.minElevationMeters.toInt()} – ${result.maxElevationMeters.toInt()} м",
-                    subtitle = "перепад: ${result.elevationDifferenceMeters.toInt()} м",
+                    title = strings.trackElevationsLabel,
+                    value = "${result.minElevationMeters.toInt()} – ${result.maxElevationMeters.toInt()} ${strings.meters}",
+                    subtitle = strings.elevationDiffLabel(result.elevationDifferenceMeters.toInt()),
                     icon = Icons.Default.Landscape,
                     modifier = Modifier.weight(1f)
                 )
@@ -1240,9 +1257,9 @@ fun RouteKeyMetricsCard(
             ) {
                 Text(
                     text = if (showAdvancedGeodetic) {
-                        "▲ Скрыть геодезические детали"
+                        strings.hideGeodetics
                     } else {
-                        "▼ Подробная геодезия (WGS-84, 3D хорда, уклоны)"
+                        strings.showGeodetics
                     },
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
@@ -1295,13 +1312,13 @@ fun RouteKeyMetricsCard(
 
                         Column {
                             Text(
-                                text = "Геодезические параметры WGS-84",
+                                text = strings.geodeticsHeader,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Редукция эллипсоида, пространственные хорды и модели ходьбы",
+                                text = strings.geodeticsSubtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1312,7 +1329,7 @@ fun RouteKeyMetricsCard(
 
                     // Group 1: Кривизна Земли
                     Text(
-                        text = "КРИВИЗНА ЗЕМЛИ И ЭЛЛИПСОИД WGS-84",
+                        text = strings.groupEarthCurvature,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -1320,26 +1337,22 @@ fun RouteKeyMetricsCard(
                     )
 
                     GeodeticParameterCard(
-                        title = "Редукция высоты на эллипсоид",
-                        value = "-${String.format(Locale.US, "%.1f", result.geodeticReductionMeters)} м",
+                        title = strings.reductionTitle,
+                        value = "-${String.format(Locale.US, "%.1f", result.geodeticReductionMeters)} ${strings.meters}",
                         valueBadge = "-${String.format(Locale.US, "%.4f", reductionRatio * 100)}%",
-                        description = "Поправка за счет средней высоты маршрута ${result.avgElevationMeters.toInt()} м над геоидом. Из-за радиуса Земли (6371 км) реальный путь на высоте физически длиннее своей проекции на уровень моря.",
+                        description = strings.reductionDesc(result.avgElevationMeters.toInt()),
                         icon = Icons.Default.Public
                     )
 
                     GeodeticParameterCard(
-                        title = if (result.isClosedLoop) "Хорда замыкания кольца (Старт ↔ Финиш)" else "3D Хорда сквозь геоид (Старт → Финиш)",
+                        title = if (result.isClosedLoop) strings.chordClosedTitle else strings.chord3dTitle,
                         value = if (result.isClosedLoop) {
-                            "${String.format(Locale.US, "%.3f", result.straightLineSeaLevelChordKm)} км (${(result.straightLineSeaLevelChordKm * 1000).roundToInt()} м)"
+                            "${String.format(Locale.US, "%.3f", result.straightLineSeaLevelChordKm)} ${strings.km} (${(result.straightLineSeaLevelChordKm * 1000).roundToInt()} ${strings.meters})"
                         } else {
-                            "${String.format(Locale.US, "%.3f", result.straightLine3dKm)} км"
+                            "${String.format(Locale.US, "%.3f", result.straightLine3dKm)} ${strings.km}"
                         },
-                        valueBadge = if (result.isClosedLoop) "Невязка кольца" else "Хорда ECEF",
-                        description = if (result.isClosedLoop) {
-                            "Геометрическое расстояние между точками старта и завершения трека (точность сведения кольцевого маршрута)."
-                        } else {
-                            "Кратчайший евклидов отрезок в трехмерном декартовом пространстве ECEF сквозь тело Земли в обход кривизны эллипсоида."
-                        },
+                        valueBadge = if (result.isClosedLoop) strings.loopMisclosureBadge else strings.chordEcefBadge,
+                        description = if (result.isClosedLoop) strings.chordClosedDesc else strings.chord3dDesc,
                         icon = Icons.Default.LinearScale
                     )
 
@@ -1347,7 +1360,7 @@ fun RouteKeyMetricsCard(
 
                     // Group 2: Геометрия пути и рельеф
                     Text(
-                        text = "ГЕОМЕТРИЯ ПУТИ И МИКРОРЕЛЬЕФ",
+                        text = strings.groupGeometryTerrain,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -1355,29 +1368,29 @@ fun RouteKeyMetricsCard(
                     )
 
                     GeodeticParameterCard(
-                        title = "Коэффициент извилистости (Track / Direct)",
+                        title = strings.tortuosityTitle,
                         value = "${String.format(Locale.US, "%.2f", tortuosity)}×",
                         description = if (result.isClosedLoop) {
-                            "Отношение длины пути (${String.format(Locale.US, "%.2f", result.trackLengthSeaLevelKm)} км) к максимальному радиальному удалению (${String.format(Locale.US, "%.2f", straightKm)} км). Показывает, насколько сильно маршрут петляет."
+                            strings.tortuosityDescClosed(result.trackLengthSeaLevelKm, straightKm)
                         } else {
-                            "Отношение длины пути (${String.format(Locale.US, "%.2f", result.trackLengthSeaLevelKm)} км) к прямому расстоянию старт-финиш (${String.format(Locale.US, "%.2f", straightKm)} км)."
+                            strings.tortuosityDescDirect(result.trackLengthSeaLevelKm, straightKm)
                         },
                         icon = Icons.Default.AltRoute
                     )
 
                     GeodeticParameterCard(
-                        title = "Истинная 3D-длина по рельефу",
-                        value = "${String.format(Locale.US, "%.2f", result.trackLength3dKm)} км",
-                        valueBadge = "+${result.terrainExtensionDifferenceMeters.toInt()} м (+${String.format(Locale.US, "%.2f", terrainExtensionPercent)}%)",
-                        description = "Реальное физическое трехмерное расстояние с учетом всех подъемов, спусков и кривизны склонов по отношению к горизонтальной проекции.",
+                        title = strings.true3dTitle,
+                        value = "${String.format(Locale.US, "%.2f", result.trackLength3dKm)} ${strings.km}",
+                        valueBadge = "+${result.terrainExtensionDifferenceMeters.toInt()} ${strings.meters} (+${String.format(Locale.US, "%.2f", terrainExtensionPercent)}%)",
+                        description = strings.true3dDesc,
                         icon = Icons.Default.Terrain
                     )
 
                     GeodeticParameterCard(
-                        title = "Максимальный уклон склона",
+                        title = strings.maxSlopeTitle,
                         value = "${String.format(Locale.US, "%.1f", result.maxSlopePercent)}%",
                         valueBadge = "~$maxSlopeDegrees°",
-                        description = "Крутизна самого крутого сегмента пути с фильтрацией шумов GPS-высотомера (средний уклон по всему маршруту: ${String.format(Locale.US, "%.1f", result.avgSlopePercent)}%).",
+                        description = strings.maxSlopeDesc(result.avgSlopePercent),
                         icon = Icons.Default.Landscape
                     )
 
@@ -1385,7 +1398,7 @@ fun RouteKeyMetricsCard(
 
                     // Group 3: Физические модели времени ходьбы
                     Text(
-                        text = "ФИЗИЧЕСКИЕ МОДЕЛИ ВРЕМЕНИ В ПУТИ (БЕЗ ПРИВАЛОВ)",
+                        text = strings.groupHikingModels,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -1397,19 +1410,19 @@ fun RouteKeyMetricsCard(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         HikingModelCard(
-                            title = "Функция Тоблера",
-                            value = "${toblerH}ч ${toblerM}м",
+                            title = strings.toblerTitle,
+                            value = "${toblerH}${strings.hours} ${toblerM}${strings.min}",
                             formula = "W = 6 · e^(-3.5·|s+0.05|)",
-                            description = "Учитывает уклон каждого отрезка трека (замедляет на крутых склонах, ускоряет на спуске -5%).",
+                            description = strings.toblerDesc,
                             icon = Icons.Default.Timer,
                             modifier = Modifier.weight(1f)
                         )
 
                         HikingModelCard(
-                            title = "Правило Найсмита",
-                            value = "${naismithH}ч ${naismithM}м",
-                            formula = "5 км/ч + 1ч / 600м набора",
-                            description = "Классический швейцарский альпинистский норматив SAC (1892 г.) для непрерывного движения.",
+                            title = strings.naismithTitle,
+                            value = "${naismithH}${strings.hours} ${naismithM}${strings.min}",
+                            formula = if (strings.isRu) "5 км/ч + 1ч / 600м набора" else "5 km/h + 1h / 600m climb",
+                            description = strings.naismithDesc,
                             icon = Icons.Default.Schedule,
                             modifier = Modifier.weight(1f)
                         )
@@ -1433,7 +1446,7 @@ fun RouteKeyMetricsCard(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Формула редукции к уровню моря (WGS-84)",
+                                    text = if (strings.isRu) "Формула редукции к уровню моря (WGS-84)" else "Sea Level Reduction Formula (WGS-84)",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -1455,7 +1468,7 @@ fun RouteKeyMetricsCard(
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Где s — длина пути, h_avg — средняя высота (${result.avgElevationMeters.toInt()} м), R ≈ 6 371 008 м — средний радиус Земли WGS-84. На больших высотах длина маршрута по физической поверхности Земли всегда физически превышает ее идеальную геодезическую проекцию на эллипсоид уровня моря.",
+                                text = if (strings.isRu) "Где s — длина пути, h_avg — средняя высота (${result.avgElevationMeters.toInt()} м), R ≈ 6 371 008 м — средний радиус Земли WGS-84. На больших высотах длина маршрута по физической поверхности Земли всегда физически превышает ее идеальную геодезическую проекцию на эллипсоид уровня моря." else "Where s is path distance, h_avg is mean altitude (${result.avgElevationMeters.toInt()} m), R ≈ 6,371,008 m is WGS-84 mean Earth radius. At high altitudes, path length along physical surface always exceeds its ideal geodetic sea-level projection.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 18.sp
@@ -1699,12 +1712,13 @@ private fun HikingModelCard(
 @Composable
 fun DemoTracksDialog(
     onDismiss: () -> Unit,
-    onTrackSelected: (com.flathike.app.model.GpsTrack) -> Unit
+    onTrackSelected: (com.flathike.app.model.GpsTrack) -> Unit,
+    strings: AppStrings
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Выберите демо-трек", style = MaterialTheme.typography.titleLarge)
+            Text(strings.demoTracks, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column(
@@ -1742,7 +1756,7 @@ fun DemoTracksDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Закрыть") }
+            TextButton(onClick = onDismiss) { Text(strings.close) }
         }
     )
 }
@@ -1750,17 +1764,18 @@ fun DemoTracksDialog(
 @Composable
 fun PasteTrackDialog(
     onDismiss: () -> Unit,
-    onApply: (String) -> Unit
+    onApply: (String) -> Unit,
+    strings: AppStrings
 ) {
     var rawText by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Вставить координаты или GPX XML") },
+        title = { Text(strings.pasteTrackTitle) },
         text = {
             Column {
                 Text(
-                    text = "Поддерживается формат GPX, KML, GeoJSON или строки 'широта, долгота, высота':",
+                    text = strings.pasteTrackDesc,
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1779,66 +1794,82 @@ fun PasteTrackDialog(
                 onClick = { onApply(rawText) },
                 enabled = rawText.isNotBlank()
             ) {
-                Text("Загрузить")
+                Text(strings.pasteTrackLoad)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            TextButton(onClick = onDismiss) { Text(strings.cancel) }
         }
     )
 }
 
 @Composable
-fun ExplanationDialog(onDismiss: () -> Unit) {
+fun ExplanationDialog(onDismiss: () -> Unit, strings: AppStrings) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Справка о расчетах FlatHike") },
+        title = { Text(strings.explanationDialogTitle) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(
-                    text = "1. По прямой на уровне моря (WGS-84)",
+                    text = if (strings.isRu) "1. По прямой на уровне моря (WGS-84)" else "1. Straight Line at Sea Level (WGS-84)",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Ортодромия — кратчайшее расстояние между координатами старта и финиша вдоль поверхности Земли на нулевой высоте (на уровне моря). В отличие от 3D хорды, огибает земную кривизну по эллипсоиду WGS-84.",
+                    text = if (strings.isRu) {
+                        "Ортодромия — кратчайшее расстояние между координатами старта и финиша вдоль поверхности Земли на нулевой высоте (на уровне моря). В отличие от 3D хорды, огибает земную кривизну по эллипсоиду WGS-84."
+                    } else {
+                        "Great-circle distance along Earth's ellipsoid at sea level (zero elevation). Unlike a 3D chord, it curves around the WGS-84 ellipsoid."
+                    },
                     style = MaterialTheme.typography.bodySmall
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "2. Коэффициенты при подъеме",
+                    text = if (strings.isRu) "2. Коэффициенты при подъеме" else "2. Climb Effort Coefficients",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "При подъеме человек совершает работу против гравитации (A = m·g·h). КПД мышц на подъеме составляет ~20-25%.\n\n" +
-                            "• Швейцарский SAC / Naismith (k = 10.0): 100 м набора = +1 км равнины.\n" +
-                            "• NOLS Petzoldt (k = 8.0): 100 м набора = +0.8 км равнины.\n" +
-                            "• ФСТР (k = 6.0): 100 м набора = +0.6 км равнины.\n" +
-                            "• Трейлраннинг (k = 4.0): налегке с палками.",
+                    text = if (strings.isRu) {
+                        "При подъеме человек совершает работу против гравитации (A = m·g·h). КПД мышц на подъеме составляет ~20-25%.\n\n" +
+                                "• Швейцарский SAC / Naismith (k = 10.0): 100 м набора = +1 км равнины.\n" +
+                                "• NOLS Petzoldt (k = 8.0): 100 м набора = +0.8 км равнины.\n" +
+                                "• ФСТР (k = 6.0): 100 м набора = +0.6 км равнины.\n" +
+                                "• Трейлраннинг (k = 4.0): налегке с палками."
+                    } else {
+                        "When climbing, a hiker works against gravity (W = m·g·h). Muscle biomechanical efficiency is ~20-25%.\n\n" +
+                                "• Swiss SAC / Naismith (k = 10.0): 100m climb = +1 km flat.\n" +
+                                "• NOLS Petzoldt (k = 8.0): 100m climb = +0.8 km flat.\n" +
+                                "• Mountaineering standard (k = 6.0): 100m climb = +0.6 km flat.\n" +
+                                "• Trail running (k = 4.0): fastpacking with trekking poles."
+                    },
                     style = MaterialTheme.typography.bodySmall
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "3. Интеллект AI Gemma",
+                    text = if (strings.isRu) "3. Интеллект AI Gemma" else "3. AI Gemma Trail Intelligence",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Приложение использует открытую нейросеть Gemma от Google для детального топографического, физиологического и геодезического анализа ваших походов.",
+                    text = if (strings.isRu) {
+                        "Приложение использует открытую нейросеть Gemma от Google для детального топографического, физиологического и геодезического анализа ваших походов."
+                    } else {
+                        "The application uses Google's open Gemma neural model for detailed topographic, physiological, and geodetic trail analysis."
+                    },
                     style = MaterialTheme.typography.bodySmall
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Понятно") }
+            TextButton(onClick = onDismiss) { Text(strings.explanationGotIt) }
         }
     )
 }
@@ -1846,7 +1877,8 @@ fun ExplanationDialog(onDismiss: () -> Unit) {
 @Composable
 fun EmptyStateCard(
     onSelectDemo: () -> Unit,
-    onOpenFilePicker: () -> Unit
+    onOpenFilePicker: () -> Unit,
+    strings: AppStrings
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1867,23 +1899,23 @@ fun EmptyStateCard(
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Загрузите GPS трек",
+                text = strings.emptyStateTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Поддерживаются файлы GPX, KML, GeoJSON, CSV, а также готовые демонстрационные маршруты.",
+                text = strings.emptyStateDesc,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextButton(onClick = onSelectDemo) {
-                    Text("Выбрать демо-трек")
+                    Text(strings.emptySelectDemo)
                 }
                 TextButton(onClick = onOpenFilePicker) {
-                    Text("Открыть файл")
+                    Text(strings.emptyOpenFile)
                 }
             }
         }

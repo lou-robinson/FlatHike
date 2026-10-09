@@ -204,7 +204,7 @@ fun TrackSegmentsCard(
                             text = if (currentSplitMode == TrackSplitMode.BY_WAYPOINTS)
                                 appStrings.noWaypoints
                             else
-                                "Недостаточно данных для разбивки",
+                                appStrings.notEnoughData,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -258,23 +258,23 @@ private fun SlopeSpeedRow(
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )
+                val ascentStr = if (summary.totalAscentMeters > 0) " • ▲+${summary.totalAscentMeters.toInt()}${appStrings.meters}" else ""
+                val descentStr = if (summary.totalDescentMeters > 0) " • ▼-${summary.totalDescentMeters.toInt()}${appStrings.meters}" else ""
                 Text(
-                    text = "${String.format(Locale.US, "%.1f", summary.totalDistanceKm)} км (${String.format(Locale.US, "%.0f", summary.percentageOfTrack)}%)" +
-                            if (summary.totalAscentMeters > 0) " • ▲+${summary.totalAscentMeters.toInt()}м" else "" +
-                            if (summary.totalDescentMeters > 0) " • ▼-${summary.totalDescentMeters.toInt()}м" else "",
+                    text = "${String.format(Locale.US, "%.1f", summary.totalDistanceKm)} ${appStrings.km} (${String.format(Locale.US, "%.0f", summary.percentageOfTrack)}%)$ascentStr$descentStr",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${String.format(Locale.US, "%.1f", summary.avgSpeedKmH)} км/ч",
+                    text = "${String.format(Locale.US, "%.1f", summary.avgSpeedKmH)} ${appStrings.kmh}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = if (summary.isRealGpsSpeed) "GPS" else "Тоблер",
+                    text = if (summary.isRealGpsSpeed) appStrings.gps else appStrings.tobler,
                     style = MaterialTheme.typography.labelSmall,
                     color = if (summary.isRealGpsSpeed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline
                 )
@@ -317,27 +317,27 @@ private fun TrackSegmentRow(
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = segment.name,
+                    text = segment.getDisplayName(appStrings),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )
+                val elevStr = if (segment.elevationChangeM >= 0) "▲+${segment.elevationChangeM.toInt()}${appStrings.meters}" else "▼${segment.elevationChangeM.toInt()}${appStrings.meters}"
                 Text(
-                    text = "${String.format(Locale.US, "%.2f", segment.distanceKm)} км • уклон ${String.format(Locale.US, "%+.1f", segment.avgSlopePercent)}% " +
-                            if (segment.elevationChangeM >= 0) "▲+${segment.elevationChangeM.toInt()}м" else "▼${segment.elevationChangeM.toInt()}м",
+                    text = "${String.format(Locale.US, "%.2f", segment.distanceKm)} ${appStrings.km} • ${appStrings.slope} ${String.format(Locale.US, "%+.1f", segment.avgSlopePercent)}% $elevStr",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${String.format(Locale.US, "%.1f", segment.avgSpeedKmH)} км/ч",
+                    text = "${String.format(Locale.US, "%.1f", segment.avgSpeedKmH)} ${appStrings.kmh}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 val minutes = (segment.durationSeconds / 60.0).toInt()
                 Text(
-                    text = "$minutes мин",
+                    text = "$minutes ${appStrings.min}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

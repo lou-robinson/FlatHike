@@ -34,8 +34,10 @@ import com.flathike.app.ai.GemmaConfig
 fun GemmaSettingsDialog(
     initialConfig: GemmaConfig,
     onDismiss: () -> Unit,
-    onSave: (GemmaConfig) -> Unit
+    onSave: (GemmaConfig) -> Unit,
+    appStrings: AppStrings? = null
 ) {
+    val strings = appStrings ?: AppStrings(com.flathike.app.model.AppLanguage.SYSTEM)
     var selectedType by remember { mutableStateOf(initialConfig.backendType) }
     var modelPath by remember { mutableStateOf(initialConfig.modelFilePath) }
     var cloudEndpoint by remember { mutableStateOf(initialConfig.cloudEndpoint) }
@@ -45,7 +47,7 @@ fun GemmaSettingsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Настройки AI Gemma", style = MaterialTheme.typography.titleLarge)
+            Text(strings.gemmaSettingsTitle, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column(
@@ -54,7 +56,7 @@ fun GemmaSettingsDialog(
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Выберите режим работы нейросети Gemma:",
+                    text = strings.gemmaModeSelection,
                     style = MaterialTheme.typography.bodyMedium
                 )
 
@@ -75,12 +77,12 @@ fun GemmaSettingsDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = type.displayName,
+                                text = type.getDisplayName(strings.isRu),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = type.description,
+                                text = type.getDescription(strings.isRu),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -93,21 +95,21 @@ fun GemmaSettingsDialog(
                 when (selectedType) {
                     GemmaBackendType.OFFLINE_INTELLIGENCE -> {
                         Text(
-                            text = "Встроенный офлайн-движок готов к работе сразу. Рассчитывает биомеханику, высотные коэффициенты и геодезию в автономном режиме без интернета.",
+                            text = strings.gemmaOfflineEngineReady,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                     GemmaBackendType.ON_DEVICE_MEDIAPIPE -> {
                         Text(
-                            text = "Укажите абсолютный путь к файлу модели Gemma (.bin или .task) на вашем устройстве:",
+                            text = strings.gemmaSpecifyModelPath,
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
                             value = modelPath,
                             onValueChange = { modelPath = it },
-                            label = { Text("Путь к модели (.bin / .task)") },
+                            label = { Text(strings.gemmaModelPathLabel) },
                             placeholder = { Text("/sdcard/Download/gemma-2b-it-gpu-int4.bin") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
@@ -115,7 +117,7 @@ fun GemmaSettingsDialog(
                     }
                     GemmaBackendType.CLOUD_API -> {
                         Text(
-                            text = "Быстрые шаблоны провайдеров Gemma:",
+                            text = strings.gemmaProviderTemplates,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -132,7 +134,7 @@ fun GemmaSettingsDialog(
                                     cloudEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemma-2-9b-it:generateContent"
                                     cloudModelName = "gemma-2-9b-it"
                                 },
-                                label = { Text("Google AI Studio (Офиц.)", style = MaterialTheme.typography.labelSmall) }
+                                label = { Text("Google AI Studio (${strings.gemmaOfficialBadge})", style = MaterialTheme.typography.labelSmall) }
                             )
                             FilterChip(
                                 selected = cloudEndpoint.contains("groq.com"),
@@ -140,7 +142,7 @@ fun GemmaSettingsDialog(
                                     cloudEndpoint = "https://api.groq.com/openai/v1/chat/completions"
                                     cloudModelName = "gemma2-9b-it"
                                 },
-                                label = { Text("Groq (Бесплатно)", style = MaterialTheme.typography.labelSmall) }
+                                label = { Text("Groq", style = MaterialTheme.typography.labelSmall) }
                             )
                             FilterChip(
                                 selected = cloudEndpoint.contains("openrouter.ai"),
@@ -165,7 +167,7 @@ fun GemmaSettingsDialog(
                         OutlinedTextField(
                             value = cloudEndpoint,
                             onValueChange = { cloudEndpoint = it },
-                            label = { Text("URL эндпоинта") },
+                            label = { Text(strings.gemmaEndpointUrl) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -173,7 +175,7 @@ fun GemmaSettingsDialog(
                         OutlinedTextField(
                             value = cloudApiKey,
                             onValueChange = { cloudApiKey = it },
-                            label = { Text(if (cloudEndpoint.contains("generativelanguage.googleapis.com")) "Google AI API Key" else "API Ключ (Bearer token)") },
+                            label = { Text(if (cloudEndpoint.contains("generativelanguage.googleapis.com")) "Google AI API Key" else strings.gemmaApiKey) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -181,7 +183,7 @@ fun GemmaSettingsDialog(
                         OutlinedTextField(
                             value = cloudModelName,
                             onValueChange = { cloudModelName = it },
-                            label = { Text("Имя модели") },
+                            label = { Text(strings.gemmaModelName) },
                             placeholder = { Text("gemma-2-9b-it") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
@@ -204,12 +206,12 @@ fun GemmaSettingsDialog(
                     )
                 }
             ) {
-                Text("Сохранить")
+                Text(strings.save)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Отмена")
+                Text(strings.cancel)
             }
         }
     )

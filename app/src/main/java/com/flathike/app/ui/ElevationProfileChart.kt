@@ -3,7 +3,6 @@ package com.flathike.app.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,13 +19,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,7 +48,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.flathike.app.model.ElevationProfilePoint
 import com.flathike.app.model.TrackWaypoint
 import java.util.Locale
@@ -55,7 +57,7 @@ import kotlin.math.max
 /**
  * High-performance Canvas-based elevation profile chart for hiking tracks,
  * featuring interactive intermediate waypoints, vertical guideline markers,
- * and elevation range annotations.
+ * tap inspection, and manual waypoint creation.
  */
 @Composable
 fun ElevationProfileChart(
@@ -63,10 +65,17 @@ fun ElevationProfileChart(
     waypoints: List<TrackWaypoint> = emptyList(),
     selectedWaypoint: TrackWaypoint? = null,
     onWaypointSelected: ((TrackWaypoint?) -> Unit)? = null,
+    onDeleteWaypoint: ((TrackWaypoint) -> Unit)? = null,
+    onAddWaypointAtDistance: ((Double) -> Unit)? = null,
     appStrings: AppStrings? = null,
     modifier: Modifier = Modifier
 ) {
     var activeWaypoint by remember(selectedWaypoint) { mutableStateOf(selectedWaypoint) }
+    var inspectedDistKm by remember { mutableStateOf<Double?>(null) }
+
+    val unitKm = appStrings?.km ?: "км"
+    val unitM = appStrings?.meters ?: "м"
+    val elevLabel = appStrings?.elevation ?: "Высота"
 
     if (points.isEmpty()) {
         Box(
@@ -99,6 +108,15 @@ fun ElevationProfileChart(
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
     val waypointMarkerColor = MaterialTheme.colorScheme.tertiary
     val waypointSelectedColor = MaterialTheme.colorScheme.error
+    val inspectionColor = MaterialTheme.colorScheme.secondary
+
+    // Helper to find elevation at given distance
+    fun getElevationAt(distKm: Double): Double {
+        if (points.isEmpty()) return 0.0
+        val clamped = distKm.coerceIn(0.0, maxDist)
+        val closest = points.minByOrNull { abs(it.distanceKm - clamped) }
+        return closest?.elevationMeters ?: minEle
+    }
 
     Column(
         modifier = modifier
@@ -139,7 +157,7 @@ fun ElevationProfileChart(
             }
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = "▲ ${maxEle.toInt()} м  ▼ ${minEle.toInt()} м",
+                text = "▲ ${maxEle.toInt()} $unitM  ▼ ${minEle.toInt()} $unitM",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -147,24 +165,38 @@ fun ElevationProfileChart(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Canvas Elevation Graph with Waypoints
+        // Canvas Elevation Graph with Waypoints and Inspection
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(130.dp)
                 .pointerInput(points, waypoints) {
                     detectTapGestures { tapOffset ->
-                        if (waypoints.isEmpty()) return@detectTapGestures
                         val width = size.width
+                        if (width <= 0f) return@detectTapGestures
+
+                        val tappedDist = ((tapOffset.x / width).coerceIn(0f, 1f) * maxDist).toDouble()
+
+                        // Check if tap hit near an existing waypoint
                         val clickedWpt = waypoints.minByOrNull { wpt ->
                             val wptX = ((wpt.distanceKm / maxDist).coerceIn(0.0, 1.0)).toFloat() * width
                             abs(wptX - tapOffset.x)
+                        }?.takeIf { wpt ->
+                            val wptX = ((wpt.distanceKm / maxDist).coerceIn(0.0, 1.0)).toFloat() * width
+                            abs(wptX - tapOffset.x) < 36.dp.toPx()
                         }
+
                         if (clickedWpt != null) {
-                            val wptX = ((clickedWpt.distanceKm / maxDist).coerceIn(0.0, 1.0)).toFloat() * width
-                            if (abs(wptX - tapOffset.x) < 48.dp.toPx()) {
-                                activeWaypoint = if (activeWaypoint == clickedWpt) null else clickedWpt
-                                onWaypointSelected?.invoke(activeWaypoint)
+                            inspectedDistKm = null
+                            activeWaypoint = if (activeWaypoint == clickedWpt) null else clickedWpt
+                            onWaypointSelected?.invoke(activeWaypoint)
+                        } else {
+                            activeWaypoint = null
+                            onWaypointSelected?.invoke(null)
+                            inspectedDistKm = if (inspectedDistKm != null && abs(inspectedDistKm!! - tappedDist) < (0.015 * maxDist)) {
+                                null
+                            } else {
+                                tappedDist
                             }
                         }
                     }
@@ -240,7 +272,7 @@ fun ElevationProfileChart(
 
             // Draw Waypoints on the graph
             val dashEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
-            waypoints.forEachIndexed { idx, wpt ->
+            waypoints.forEach { wpt ->
                 val wptX = ((wpt.distanceKm / maxDist).coerceIn(0.0, 1.0)).toFloat() * width
                 val normY = ((wpt.elevation - minEle) / eleRange).coerceIn(0.0, 1.0).toFloat()
                 val wptY = usableHeight - (normY * chartRangeHeight)
@@ -272,6 +304,33 @@ fun ElevationProfileChart(
                     center = Offset(wptX, wptY)
                 )
             }
+
+            // Draw inspection crosshair marker if active
+            inspectedDistKm?.let { dist ->
+                val inspX = ((dist / maxDist).coerceIn(0.0, 1.0)).toFloat() * width
+                val ele = getElevationAt(dist)
+                val normY = ((ele - minEle) / eleRange).coerceIn(0.0, 1.0).toFloat()
+                val inspY = usableHeight - (normY * chartRangeHeight)
+
+                drawLine(
+                    color = inspectionColor.copy(alpha = 0.8f),
+                    start = Offset(inspX, paddingTop),
+                    end = Offset(inspX, usableHeight),
+                    strokeWidth = 1.5.dp.toPx(),
+                    pathEffect = dashEffect
+                )
+
+                drawCircle(
+                    color = inspectionColor,
+                    radius = 5.dp.toPx(),
+                    center = Offset(inspX, inspY)
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 2.5.dp.toPx(),
+                    center = Offset(inspX, inspY)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -279,13 +338,13 @@ fun ElevationProfileChart(
         // Axis Distance Labels
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "0.0 км (${points.first().elevationMeters.toInt()}м)",
+                text = "0.0 $unitKm (${points.first().elevationMeters.toInt()}$unitM)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = "${String.format(Locale.US, "%.1f", maxDist)} км (${points.last().elevationMeters.toInt()}м)",
+                text = "${String.format(Locale.US, "%.1f", maxDist)} $unitKm (${points.last().elevationMeters.toInt()}$unitM)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -305,12 +364,13 @@ fun ElevationProfileChart(
                     FilterChip(
                         selected = isSelected,
                         onClick = {
+                            inspectedDistKm = null
                             activeWaypoint = if (isSelected) null else wpt
                             onWaypointSelected?.invoke(activeWaypoint)
                         },
                         label = {
                             Text(
-                                text = "${idx + 1}. ${wpt.name} (${String.format(Locale.US, "%.1f", wpt.distanceKm)} км)",
+                                text = "${idx + 1}. ${wpt.name} (${String.format(Locale.US, "%.1f", wpt.distanceKm)} $unitKm)",
                                 style = MaterialTheme.typography.labelSmall
                             )
                         },
@@ -331,7 +391,7 @@ fun ElevationProfileChart(
             }
         }
 
-        // Selected Waypoint Detail Card
+        // Selected Waypoint Detail Card with Delete Option
         AnimatedVisibility(visible = activeWaypoint != null) {
             activeWaypoint?.let { wpt ->
                 Card(
@@ -340,7 +400,7 @@ fun ElevationProfileChart(
                         .padding(top = 8.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
                     )
                 ) {
                     Row(
@@ -370,11 +430,94 @@ fun ElevationProfileChart(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${String.format(Locale.US, "%.2f", wpt.distanceKm)} км • Высота ${wpt.elevation.toInt()} м" +
+                                text = "${String.format(Locale.US, "%.2f", wpt.distanceKm)} $unitKm • $elevLabel ${wpt.elevation.toInt()} $unitM" +
                                         (wpt.description?.let { " • $it" } ?: ""),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                        if (onDeleteWaypoint != null) {
+                            IconButton(
+                                onClick = {
+                                    onDeleteWaypoint(wpt)
+                                    activeWaypoint = null
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = appStrings?.delete ?: "Delete",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Tap-inspection Card with Quick "Add Waypoint" action
+        AnimatedVisibility(visible = inspectedDistKm != null && activeWaypoint == null) {
+            inspectedDistKm?.let { dist ->
+                val ele = getElevationAt(dist)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(inspectionColor.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Place,
+                                contentDescription = null,
+                                tint = inspectionColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${String.format(Locale.US, "%.2f", dist)} $unitKm",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "$elevLabel ${ele.toInt()} $unitM",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (onAddWaypointAtDistance != null) {
+                            OutlinedButton(
+                                onClick = {
+                                    onAddWaypointAtDistance(dist)
+                                    inspectedDistKm = null
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = appStrings?.addWaypoint ?: "Добавить точку",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
                         }
                     }
                 }

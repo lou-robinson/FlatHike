@@ -50,7 +50,8 @@ data class FlatHikeUiState(
     val appLanguage: AppLanguage = AppLanguage.SYSTEM,
     val trackSplitMode: TrackSplitMode = TrackSplitMode.BY_SLOPE,
     val selectedWaypoint: TrackWaypoint? = null,
-    val isAddWaypointDialogOpen: Boolean = false
+    val isAddWaypointDialogOpen: Boolean = false,
+    val initialWaypointDistance: Double? = null
 ) {
     val effectiveCoefficient: Double
         get() = if (selectedPreset == HikingPreset.CUSTOM) customCoefficient else selectedPreset.ascentCoefficient
@@ -102,6 +103,9 @@ class FlatHikeViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    private val isRu: Boolean
+        get() = AppStrings(_uiState.value.appLanguage).isRu
+
     fun loadTrackFromStream(inputStream: InputStream, filename: String) {
         try {
             val track = TrackFormatDetector.parseStream(
@@ -110,12 +114,12 @@ class FlatHikeViewModel(application: Application) : AndroidViewModel(application
                 defaultName = filename.substringBeforeLast('.')
             )
             if (track.points.isEmpty()) {
-                _uiState.update { it.copy(trackError = "Файл не содержит корректных GPS координат") }
+                _uiState.update { it.copy(trackError = if (isRu) "Файл не содержит корректных GPS координат" else "File does not contain valid GPS coordinates") }
             } else {
                 loadTrack(track)
             }
         } catch (e: Exception) {
-            _uiState.update { it.copy(trackError = "Ошибка чтения трека: ${e.localizedMessage}") }
+            _uiState.update { it.copy(trackError = if (isRu) "Ошибка чтения трека: ${e.localizedMessage}" else "Failed to read track: ${e.localizedMessage}") }
         }
     }
 
@@ -123,12 +127,12 @@ class FlatHikeViewModel(application: Application) : AndroidViewModel(application
         try {
             val track = TrackFormatDetector.parseText(text)
             if (track.points.isEmpty()) {
-                _uiState.update { it.copy(trackError = "Не удалось распознать координаты в тексте") }
+                _uiState.update { it.copy(trackError = if (isRu) "Не удалось распознать координаты в тексте" else "Could not recognize coordinates in text") }
             } else {
                 loadTrack(track)
             }
         } catch (e: Exception) {
-            _uiState.update { it.copy(trackError = "Ошибка парсинга: ${e.localizedMessage}") }
+            _uiState.update { it.copy(trackError = if (isRu) "Ошибка парсинга: ${e.localizedMessage}" else "Parsing error: ${e.localizedMessage}") }
         }
     }
 
@@ -178,7 +182,7 @@ class FlatHikeViewModel(application: Application) : AndroidViewModel(application
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        gemmaError = "Ошибка генерации Gemma: ${e.localizedMessage}",
+                        gemmaError = if (isRu) "Ошибка генерации Gemma: ${e.localizedMessage}" else "Gemma generation error: ${e.localizedMessage}",
                         isGemmaLoading = false
                     )
                 }
@@ -204,7 +208,7 @@ class FlatHikeViewModel(application: Application) : AndroidViewModel(application
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        gemmaError = "Ошибка Gemma: ${e.localizedMessage}",
+                        gemmaError = if (isRu) "Ошибка Gemma: ${e.localizedMessage}" else "Gemma error: ${e.localizedMessage}",
                         isGemmaLoading = false
                     )
                 }
@@ -262,23 +266,17 @@ class FlatHikeViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun openAddWaypointDialog() {
-        _uiState.update { it.copy(isAddWaypointDialogOpen = true) }
+    fun openAddWaypointDialog(initialDistanceKm: Double? = null) {
+        _uiState.update { it.copy(isAddWaypointDialogOpen = true, initialWaypointDistance = initialDistanceKm) }
     }
 
     fun closeAddWaypointDialog() {
-        _uiState.update { it.copy(isAddWaypointDialogOpen = false) }
+        _uiState.update { it.copy(isAddWaypointDialogOpen = false, initialWaypointDistance = null) }
     }
 
     fun addWaypoint(name: String, distanceKm: Double, description: String? = null) {
         val current = _uiState.value.currentTrack ?: return
-        val res = _uiState.value.calculationResult ?: return
-
-        val targetPt = if (current.points.isNotEmpty()) {
-            val ratio = if (res.trackLengthSeaLevelKm > 0) (distanceKm / res.trackLengthSeaLevelKm).coerceIn(0.0, 1.0) else 0.0
-            val ptIdx = (ratio * (current.points.size - 1)).toInt().coerceIn(0, current.points.size - 1)
-            current.points[ptIdx]
-        } else null
+        val targetPt = TrackAnalyzer.findPointAtDistance(current.points, distanceKm)
 
         if (targetPt != null) {
             val newWpt = TrackWaypoint(
@@ -293,6 +291,15 @@ class FlatHikeViewModel(application: Application) : AndroidViewModel(application
             loadTrack(updatedTrack)
         }
         closeAddWaypointDialog()
+    }
+
+    fun deleteWaypoint(waypoint: TrackWaypoint) {
+        val current = _uiState.value.currentTrack ?: return
+        val updatedTrack = current.copy(waypoints = current.waypoints.filter { it != waypoint })
+        loadTrack(updatedTrack)
+        if (_uiState.value.selectedWaypoint == waypoint) {
+            selectWaypoint(null)
+        }
     }
 
     fun selectWaypoint(waypoint: TrackWaypoint?) {
@@ -360,7 +367,7 @@ class FlatHikeViewModel(application: Application) : AndroidViewModel(application
                 _uiState.update {
                     it.copy(
                         isFetchingElevation = false,
-                        elevationFetchError = e.localizedMessage ?: "Сетевая ошибка при загрузке DEM"
+                        elevationFetchError = e.localizedMessage ?: if (isRu) "Сетевая ошибка при загрузке DEM" else "Network error while fetching DEM"
                     )
                 }
             }

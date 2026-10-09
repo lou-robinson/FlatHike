@@ -30,10 +30,12 @@ fun AddWaypointDialog(
     maxDistanceKm: Double,
     onDismiss: () -> Unit,
     onSave: (name: String, distanceKm: Double, description: String?) -> Unit,
-    appStrings: AppStrings
+    appStrings: AppStrings,
+    initialDistanceKm: Double? = null
 ) {
     var name by remember { mutableStateOf("") }
-    var distanceStr by remember { mutableStateOf(String.format(Locale.US, "%.1f", maxDistanceKm / 2.0)) }
+    val defaultDist = (initialDistanceKm ?: (maxDistanceKm / 2.0)).coerceIn(0.0, maxDistanceKm)
+    var distanceStr by remember(initialDistanceKm) { mutableStateOf(String.format(Locale.US, "%.1f", defaultDist)) }
     var description by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
 
@@ -55,7 +57,7 @@ fun AddWaypointDialog(
                         isError = false
                     },
                     label = { Text(appStrings.waypointName) },
-                    placeholder = { Text("Привал / Родник / Перевал") },
+                    placeholder = { Text(appStrings.waypointPlaceholder) },
                     isError = isError && name.isBlank(),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
