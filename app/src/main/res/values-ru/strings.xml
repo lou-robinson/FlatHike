@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">FlatHike</string>
+    <string name="app_subtitle">Горный эквивалент и геодезия</string>
+    <string name="settings">Настройки</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+    <string name="elevation_profile">Высотный профиль</string>
+    <string name="waypoints">Промежуточные точки</string>
+    <string name="speed_analysis">Анализ скорости</string>
+</resources>

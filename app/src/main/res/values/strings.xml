@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">FlatHike</string>
+    <string name="app_subtitle">Mountain Equivalent &amp; Geodesy</string>
+    <string name="settings">Settings</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="elevation_profile">Elevation Profile</string>
+    <string name="waypoints">Waypoints</string>
+    <string name="speed_analysis">Speed Analysis</string>
+</resources>
